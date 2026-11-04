@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <time.h>
 
 #define TAM_LINHA 100
 
@@ -17,6 +18,16 @@ void apresentaTitulo(void)
     printf("\n=====================================================\n");
     printf("   J O G O   D A   V I D A   (matriz n X n)\n");
     printf("=====================================================\n");
+}
+
+/* limpa o terminal: "cls" no Windows, "clear" em Linux/Mac */
+void limpaTela(void)
+{
+#ifdef _WIN32
+    system("cls");
+#else
+    system("clear");
+#endif
 }
 
 static int leLinha(char *buf, int tam)
@@ -64,17 +75,16 @@ void apresentaMenu(int totConfig)
 {
     printf("\nProjeto J O G O D A V I D A (usando matriz %d X %d)\n", dim, dim);
     printf("===========================================\n");
-    printf("1 - Apresentar o Mapa\n");
-    printf("2 - Limpar o Mapa\n");
-    printf("3 - Incluir/excluir celulas vivas\n");
-    printf("4 - Mostrar/Esconder os mortos-vizinhos  [%s]\n",
+    printf("1 - Limpar o Mapa\n");
+    printf("2 - Incluir/excluir celulas vivas\n");
+    printf("3 - Mostrar/Esconder os mortos-vizinhos  [%s]\n",
            mostraVizinhas ? "mostrando" : "escondidos");
-    printf("5 - INICIAR O PROCESSO (etapa LP5)\n");
-    printf("6 - Apresentar as Listas (etapa LP6)\n");
-    printf("7 - Gravar uma geracao inicial\n");
-    printf("8 - Recuperar uma geracao inicial cadastrada\n");
-    printf("9 - Limpar o cadastro de geracoes iniciais (%d cadastradas)\n", totConfig);
-    printf("10 - Regras de evolucao das celulas\n");
+    printf("4 - INICIAR O PROCESSO (simular geracoes)\n");
+    printf("5 - Apresentar as Listas (etapa LP6)\n");
+    printf("6 - Gravar uma geracao inicial\n");
+    printf("7 - Recuperar uma geracao inicial cadastrada\n");
+    printf("8 - Limpar o cadastro de geracoes iniciais (%d cadastradas)\n", totConfig);
+    printf("9 - Regras de evolucao das celulas\n");
     printf("0 - Sair\n");
 }
 
@@ -120,4 +130,32 @@ void apresentaRegras(void)
     printf("- Morte por solidao: viva com 0 ou 1 vizinho morre.\n");
     printf("As regras sao aplicadas a todas as celulas ao mesmo tempo.\n");
     printf("Legenda: 'O' = viva, '.' = morta, '+' = morta vizinha de uma viva.\n");
+}
+
+/* atraso controlado (valido de 1 a 59 segundos) */
+void ftempo(int seg)
+{
+    time_t lt1, lt2;
+    lt1 = time(NULL);
+    lt2 = lt1;
+    while (difftime(lt2, lt1) < seg)
+        lt2 = time(NULL);
+}
+
+/* REQ07: identifica a geracao apresentada */
+void apresentaGeracao(int ger, int total)
+{
+    printf("\n######## GERACAO %d de %d ########", ger, total);
+}
+
+/* REQ08 (velocidade 0): Enter = proxima geracao, f + Enter = interrompe */
+int aguardaPasso(void)
+{
+    char buf[TAM_LINHA];
+
+    printf("[Enter] proxima geracao  |  [f] + Enter para finalizar: ");
+    leLinha(buf, TAM_LINHA);
+    if (toupper((unsigned char)buf[0]) == 'F')
+        return 0;
+    return 1;
 }

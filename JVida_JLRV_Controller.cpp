@@ -19,6 +19,8 @@ void defineDimensao(void)
     sprintf(prompt, "Dimensao do mapa (%d a %d): ", DIM_MIN, DIM_MAX);
     d = lerInteiro(prompt, DIM_MIN, DIM_MAX);
     iniciaModelo(d);
+    limpaTela();
+    mostraMapa();
 }
 
 /* REQ03 */
@@ -33,13 +35,19 @@ void incluiExcluiCelulas(void)
 {
     char pl[80], pc[80];
     int l, c;
+    const char *msg = NULL;            /* mensagem mostrada abaixo do mapa */
 
     sprintf(pl, "Linha (0 a %d, -1 para terminar): ", dim - 1);
     sprintf(pc, "Coluna (0 a %d): ", dim - 1);
 
-    mostraMapa();
     while (1)
     {
+        limpaTela();
+        mostraMapa();
+        if (msg != NULL)
+            apresentaMensagem(msg);
+        msg = NULL;
+
         l = lerInteiro(pl, -1, dim - 1);
         if (l == -1)
             break;
@@ -50,15 +58,14 @@ void incluiExcluiCelulas(void)
             if (lerSimNao("Celula ja existe. Excluir? (s/n): "))
             {
                 morreCelula(l, c);
-                apresentaMensagem("Celula excluida.");
+                msg = "Celula excluida.";
             }
         }
         else
         {
             nasceCelula(l, c);
-            apresentaMensagem("Celula incluida.");
+            msg = "Celula incluida.";
         }
-        mostraMapa();
     }
 }
 
@@ -66,6 +73,7 @@ void incluiExcluiCelulas(void)
 void alternaVizinhas(void)
 {
     mostraVizinhas = !mostraVizinhas;
+    limpaTela();
     mostraMapa();
 }
 
@@ -73,8 +81,9 @@ void alternaVizinhas(void)
 void limpaTudo(void)
 {
     limpaMapa();
-    apresentaMensagem("Mapa limpo.");
+    limpaTela();
     mostraMapa();
+    apresentaMensagem("Mapa limpo.");
 }
 
 /* REQ12: grava a configuracao atual (acrescenta ao final do arquivo) */
@@ -87,7 +96,7 @@ void gravaCelulas(void)
     }
     if (qtconf >= MAX_CONFIG)
     {
-        apresentaMensagem("Cadastro cheio. Limpe o cadastro (opcao 9) para gravar.");
+        apresentaMensagem("Cadastro cheio. Limpe o cadastro (opcao 8) para gravar.");
         return;
     }
     copiaVivasParaLista(&LConfig[qtconf].TL);
@@ -134,12 +143,13 @@ void recuperaCelulas(void)
     }
     ultrecup = k;
 
+    limpaTela();
+    mostraMapa();
     apresentaMensagemNum("Configuracao recuperada, numero:", k + 1);
     if (t->dim != dim)
         apresentaMensagemNum("Atencao: gravada com dimensao", t->dim);
     if (fora > 0)
         apresentaMensagemNum("Celulas fora do mapa atual (ignoradas):", fora);
-    mostraMapa();
 }
 
 void limpaGer(void)
@@ -157,6 +167,51 @@ void limpaGer(void)
     apresentaMensagem("O deposito de geracoes iniciais esta vazio.");
 }
 
+/* REQ06, REQ07, REQ08, REQ09 */
+void simulaGeracoes(void)
+{
+    int total, seg, g;
+
+    if (contaVivas() == 0)
+    {
+        apresentaMensagem("Nao ha celulas vivas. Inclua celulas (opcao 2) ou recupere uma geracao (opcao 7).");
+        return;
+    }
+
+    total = lerInteiro("Quantidade de geracoes a simular (1 a 9999): ", 1, 9999);
+    seg = lerInteiro("Velocidade: segundos entre geracoes (0 = passo-a-passo, 1 a 59): ", 0, 59);
+
+    limpaTela();
+    apresentaGeracao(1, total);
+    mostraMapa();                       /* REQ09: contagens abaixo do mapa */
+
+    for (g = 2; g <= total; g++)
+    {
+        if (seg == 0)
+        {
+            if (!aguardaPasso())
+            {
+                apresentaMensagem("Simulacao interrompida pelo operador.");
+                return;
+            }
+        }
+        else
+            ftempo(seg);
+
+        proximaGeracao();
+        limpaTela();
+        apresentaGeracao(g, total);
+        mostraMapa();
+
+        if (contaVivas() == 0)
+        {
+            apresentaMensagem("Todas as celulas morreram. Simulacao encerrada.");
+            return;
+        }
+    }
+    apresentaMensagem("Simulacao concluida.");
+}
+
 void executaMenu(void)
 {
     int op;
@@ -164,19 +219,18 @@ void executaMenu(void)
     do
     {
         apresentaMenu(qtconf);
-        op = lerInteiro("Opcao selecionada: ", 0, 10);
+        op = lerInteiro("Opcao selecionada: ", 0, 9);
         switch (op)
         {
-            case 1:  mostraMapa();          break;
-            case 2:  limpaTudo();           break;
-            case 3:  incluiExcluiCelulas(); break;
-            case 4:  alternaVizinhas();     break;
-            case 5:  apresentaMensagem("Simulacao: sera implementada na etapa LP5."); break;
-            case 6:  apresentaMensagem("Listas: serao implementadas na etapa LP6.");  break;
-            case 7:  gravaCelulas();        break;
-            case 8:  recuperaCelulas();     break;
-            case 9:  limpaGer();            break;
-            case 10: apresentaRegras();     break;
+            case 1:  limpaTudo();           break;   /* ja apresenta o mapa */
+            case 2:  incluiExcluiCelulas(); break;   /* apresenta o mapa a cada alteracao */
+            case 3:  alternaVizinhas();     break;   /* ja apresenta o mapa */
+            case 4:  simulaGeracoes();      break;   /* apresenta cada geracao */
+            case 5:  apresentaMensagem("Listas: serao implementadas na etapa LP6.");  break;
+            case 6:  gravaCelulas();        break;
+            case 7:  recuperaCelulas();     break;   /* ja apresenta o mapa */
+            case 8:  limpaGer();            break;
+            case 9:  apresentaRegras();     break;
             case 0:  apresentaMensagem("Ate logo!"); break;
         }
     } while (op != 0);
